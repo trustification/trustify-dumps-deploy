@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: trustify-dumps-serve
+  labels:
+    app.kubernetes.io/name: trustify-dumps-serve
+    app.kubernetes.io/component: serve
+    app.kubernetes.io/part-of: trustify-dumps
+  annotations:
+    route.openshift.io/termination: edge
+
+spec:
+  rules:
+    - host: serve-trustify-dumps.apps.cluster.trustification.rocks
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: trustify-dumps-serve
+                port:
+                  name: endpoint

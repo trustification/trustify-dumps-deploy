@@ -1,0 +1,37 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: trustify-xtask
+  labels:
+    app.kubernetes.io/name: trustify-dumps-create-dump
+    app.kubernetes.io/component: create-dump
+    app.kubernetes.io/part-of: trustify-dumps
+spec:
+  runPolicy: Serial
+  nodeSelector:
+    kubernetes.io/arch: arm64
+  triggers:
+    - type: ImageChange
+    - type: ConfigChange
+  source:
+    git:
+      uri: "https://github.com/trustification/trustify"
+    dockerfile: |
+      FROM registry.access.redhat.com/ubi9/ubi:latest
+      ENV RUSTUP_HOME=/opt/rust
+      ENV CARGO_HOME=/opt/rust
+      RUN dnf install -y openssl openssl-devel gcc gcc-c++ make cyrus-sasl cmake libpq-devel perl xz postgresql
+      WORKDIR /app
+      RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+      ENV PATH "$PATH:$CARGO_HOME/bin"
+      COPY . .
+      RUN cargo build --release --package xtask
+      CMD ["/app/target/release/xtask"]
+
+  strategy:
+    type: Docker
+    dockerStrategy: { }
+  output:
+    to:
+      kind: "ImageStreamTag"
+      name: "trustify-xtask:latest"

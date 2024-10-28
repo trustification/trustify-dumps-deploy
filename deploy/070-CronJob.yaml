@@ -1,0 +1,101 @@
+kind: CronJob
+apiVersion: batch/v1
+metadata:
+  name: trustify-dumps-create-dump
+  labels:
+    app.kubernetes.io/name: trustify-dumps-create-dump
+    app.kubernetes.io/component: create-dump
+    app.kubernetes.io/part-of: trustify-dumps
+spec:
+  schedule: "0 1 * * *" # daily at midnight
+  suspend: false
+
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: trustify-dumps-create-dump
+            app.kubernetes.io/component: create-dump
+            app.kubernetes.io/part-of: trustify-dumps
+          annotations:
+            alpha.image.policy.openshift.io/resolve-names: '*'
+        spec:
+          securityContext:
+            runAsNonRoot: true
+          nodeSelector:
+            kubernetes.io/arch: arm64
+          restartPolicy: OnFailure
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: "kubernetes.io/hostname"
+                  labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: trustify-dumps-serve
+                      app.kubernetes.io/component: serve
+                      app.kubernetes.io/part-of: trustify-dumps
+          containers:
+            - name: run
+              image: trustify-xtask
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+              env:
+                - name: TRUSTD_DB_MIN_CONN
+                  value: "2"
+                - name: TRUSTD_DB_MAX_CONN
+                  value: "4"
+                - name: RUST_LOG
+                  value: info
+              command:
+                - bash
+                - -c
+                - |
+                  set -xe
+                  set -o pipefail
+                  mkdir -p /mnt/data/builder/work
+                  /app/target/release/xtask generate-dump --working-dir /mnt/data/builder/work --output /mnt/data/builder/work/dump.sql --input /etc/config/input.yaml |& tee /mnt/data/builder/work/dump.log
+                  cd /mnt/data/builder/work
+                  
+                  rm -f dump.sql.gz
+                  rm -f dump.log.gz
+                  
+                  gzip dump.sql
+                  gzip dump.log
+                  tar cavf dump.tar.gz /mnt/data/builder/work/storage
+                  
+                  DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                  
+                  mkdir -p /data/public/$DATE/
+                  cp dump.tar.gz /data/public/$DATE/
+                  cp dump.log.gz /data/public/$DATE/
+                  cp dump.sql.gz /data/public/$DATE/
+              imagePullPolicy: Always
+              volumeMounts:
+                - mountPath: /etc/config
+                  name: config
+                  readOnly: true
+                - mountPath: /mnt/data/builder
+                  name: builder
+                  readOnly: false
+                - mountPath: /data
+                  name: data
+                  readOnly: false
+          volumes:
+            - name: config
+              configMap:
+                name: trustify-dumps-import-config
+            - name: builder
+              emptyDir: { }
+            - name: data
+              persistentVolumeClaim:
+                claimName: trustify-dumps
+                readOnly: false
+
