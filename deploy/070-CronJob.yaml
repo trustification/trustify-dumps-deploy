@@ -71,12 +71,15 @@ spec:
                   gzip dump.log
                   tar cavf dump.tar.gz /mnt/data/builder/work/storage
                   
-                  DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                  DATE=$(date -u +"%Y%m%dT%H%M%SZ")
                   
                   mkdir -p /data/public/$DATE/
                   cp dump.tar.gz /data/public/$DATE/
                   cp dump.log.gz /data/public/$DATE/
                   cp dump.sql.gz /data/public/$DATE/
+                  
+                  cd /data/public/$DATE/
+                  ls -dt */ | tail -n +6 | xargs rm -rf
               imagePullPolicy: Always
               volumeMounts:
                 - mountPath: /etc/config
