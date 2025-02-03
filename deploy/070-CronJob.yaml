@@ -96,7 +96,13 @@ spec:
               configMap:
                 name: trustify-dumps-import-config
             - name: builder
-              emptyDir: { }
+              ephemeral:
+                volumeClaimTemplate:
+                  spec:
+                    accessModes: [ "ReadWriteOnce" ]
+                    resources:
+                      requests:
+                        storage: 200Gi
             - name: data
               persistentVolumeClaim:
                 claimName: trustify-dumps
