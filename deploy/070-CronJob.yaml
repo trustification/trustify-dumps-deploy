@@ -80,6 +80,9 @@ spec:
                   
                   cd /data/public/$DATE/
                   ls -dt */ | tail -n +6 | xargs rm -rf
+              resources:
+                requests:
+                  memory: 12Gi
               imagePullPolicy: Always
               volumeMounts:
                 - mountPath: /etc/config
