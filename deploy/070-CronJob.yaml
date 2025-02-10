@@ -28,15 +28,6 @@ spec:
           nodeSelector:
             kubernetes.io/arch: arm64
           restartPolicy: OnFailure
-          affinity:
-            podAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                - topologyKey: "kubernetes.io/hostname"
-                  labelSelector:
-                    matchLabels:
-                      app.kubernetes.io/name: trustify-dumps-serve
-                      app.kubernetes.io/component: serve
-                      app.kubernetes.io/part-of: trustify-dumps
           containers:
             - name: run
               image: trustify-xtask
@@ -54,6 +45,20 @@ spec:
                   value: "4"
                 - name: RUST_LOG
                   value: info
+                - name: S3_BUCKET_NAME
+                  value: "trustify-dumps"
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-secret
+                      key: access_key_id
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-secret
+                      key: secret_access_key
+                - name: AWS_DEFAULT_REGION
+                  value: "eu-west-1"
               command:
                 - bash
                 - -c
@@ -72,17 +77,13 @@ spec:
                   tar cavf dump.tar.gz /mnt/data/builder/work/storage
                   
                   DATE=$(date -u +"%Y%m%dT%H%M%SZ")
-                  
-                  mkdir -p /data/public/$DATE/
-                  cp dump.tar.gz /data/public/$DATE/
-                  cp dump.log.gz /data/public/$DATE/
-                  cp dump.sql.gz /data/public/$DATE/
-                  
-                  cd /data/public/$DATE/
-                  ls -dt */ | tail -n +6 | xargs rm -rf
+
+                  for i in dump.tar.gz dump.log.gz dump.sql.gz; do 
+                      aws s3 cp "$i" "s3://$S3_BUCKET_NAME/$DATE/$i"
+                  done
               resources:
                 requests:
-                  memory: 12Gi
+                  memory: 6Gi
               imagePullPolicy: Always
               volumeMounts:
                 - mountPath: /etc/config
@@ -90,9 +91,6 @@ spec:
                   readOnly: true
                 - mountPath: /mnt/data/builder
                   name: builder
-                  readOnly: false
-                - mountPath: /data
-                  name: data
                   readOnly: false
           volumes:
             - name: config
@@ -106,8 +104,3 @@ spec:
                     resources:
                       requests:
                         storage: 256Gi
-            - name: data
-              persistentVolumeClaim:
-                claimName: trustify-dumps
-                readOnly: false
-
