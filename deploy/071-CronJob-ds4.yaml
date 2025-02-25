@@ -1,13 +1,13 @@
 kind: CronJob
 apiVersion: batch/v1
 metadata:
-  name: trustify-dumps-create-dump
+  name: trustify-dumps-create-dump-ds4
   labels:
     app.kubernetes.io/name: trustify-dumps-create-dump
     app.kubernetes.io/component: create-dump
     app.kubernetes.io/part-of: trustify-dumps
 spec:
-  schedule: "0 1 * * *" # daily at midnight
+  schedule: "0 12 * * *" # daily at noon
   suspend: false
 
   concurrencyPolicy: Forbid
@@ -46,7 +46,7 @@ spec:
                 - name: RUST_LOG
                   value: info
                 - name: S3_BUCKET_NAME
-                  value: "trustify-dumps"
+                  value: "trustify-dumps-ds4"
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
                     secretKeyRef:
@@ -66,7 +66,7 @@ spec:
                   set -xe
                   set -o pipefail
                   mkdir -p /mnt/data/builder/work
-                  /app/target/release/xtask generate-dump --working-dir /mnt/data/builder/work --output /mnt/data/builder/work/dump.sql --input /etc/config/input.yaml |& tee /mnt/data/builder/work/dump.log
+                  /app/target/release/xtask generate-dump --working-dir /mnt/data/builder/work --output /mnt/data/builder/work/dump.sql --input /etc/config/input-ds4.yaml |& tee /mnt/data/builder/work/dump.log
                   cd /mnt/data/builder/work
 
                   rm -f dump.sql.gz
