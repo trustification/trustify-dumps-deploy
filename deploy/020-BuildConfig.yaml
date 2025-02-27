@@ -18,12 +18,12 @@ spec:
       FROM ghcr.io/trustification/xtask:latest
       USER 0
       RUN dnf install -y unzip
-      USER trustify
       RUN \
         curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" && \
         unzip awscliv2.zip && \
         ./aws/install && \
         rm -Rf aws
+      USER trustify
       RUN /usr/local/bin/aws --version
       WORKDIR /app
 
