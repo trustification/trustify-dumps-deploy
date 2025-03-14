@@ -20,17 +20,13 @@ spec:
             app.kubernetes.io/name: trustify-dumps-create-dump
             app.kubernetes.io/component: create-dump
             app.kubernetes.io/part-of: trustify-dumps
-          annotations:
-            alpha.image.policy.openshift.io/resolve-names: '*'
         spec:
           securityContext:
             runAsNonRoot: true
-          nodeSelector:
-            kubernetes.io/arch: arm64
           restartPolicy: OnFailure
           containers:
             - name: run
-              image: trustify-xtask
+              image: ghcr.io/trustification/xtask:latest
               securityContext:
                 allowPrivilegeEscalation: false
                 capabilities:
