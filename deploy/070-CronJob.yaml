@@ -62,6 +62,7 @@ spec:
                   set -xe
                   set -o pipefail
                   mkdir -p /mnt/data/builder/work
+                  export TRUSTD_STORAGE_FS_PATH=/mnt/data/builder/work/storage # need this for now, because of data migration
                   /app/target/release/xtask generate-dump --working-dir /mnt/data/builder/work --output /mnt/data/builder/work/dump.sql --input /etc/config/input.yaml |& tee /mnt/data/builder/work/dump.log
                   cd /mnt/data/builder/work
 
