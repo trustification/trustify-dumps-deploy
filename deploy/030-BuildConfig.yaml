@@ -1,0 +1,45 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: trustify-xtask
+  labels:
+    app.kubernetes.io/component: create-dump
+    app.kubernetes.io/name: trustify-dumps-create-dump
+    app.kubernetes.io/part-of: trustify-dumps
+spec:
+  nodeSelector:
+    kubernetes.io/arch: arm64
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'trustify-xtask:latest'
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+  strategy:
+    type: Docker
+    dockerStrategy: { }
+  postCommit: { }
+  source:
+    type: Git
+    dockerfile: |
+      FROM registry.access.redhat.com/ubi9/ubi:latest
+      ENV RUSTUP_HOME=/opt/rust
+      ENV CARGO_HOME=/opt/rust
+      RUN dnf install -y openssl openssl-devel gcc gcc-c++ make cyrus-sasl cmake libpq-devel perl xz postgresql unzip
+      RUN \
+      curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" && \
+      unzip awscliv2.zip && \
+      ./aws/install && \
+      rm -Rf aws
+      RUN /usr/local/bin/aws --version
+      WORKDIR /app
+      RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+      ENV PATH "$PATH:$CARGO_HOME/bin"
+      COPY . .
+      RUN cargo build --release --package xtask
+      CMD ["/app/target/release/xtask"]
+    git:
+      uri: 'https://github.com/guacsec/trustify'
+  triggers:
+    - type: ConfigChange
+  runPolicy: Serial
