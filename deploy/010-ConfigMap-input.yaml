@@ -13,7 +13,7 @@ data:
     import:
       - !sbom
         description: All Red Hat SBOMs
-        source: https://access.redhat.com/security/data/sbom/beta/
+        source: https://access.redhat.com/security/data/sbom/v1/
         period: 1s
         fetchRetries: 50
         keys:
@@ -42,7 +42,7 @@ data:
     import:
       - !sbom
         description: Red Hat SBOMs
-        source: https://access.redhat.com/security/data/sbom/beta/
+        source: https://access.redhat.com/security/data/sbom/v1/
         period: 1s
         fetchRetries: 50
         ignoreMissing: true
@@ -52,18 +52,18 @@ data:
         description: CVEs since 2020
         source: https://github.com/CVEProject/cvelistV5
         period: 1s
-        years: [2020, 2021, 2022, 2023, 2024, 2025]
+        years: [ 2020, 2021, 2022, 2023, 2024, 2025 ]
       - !osv
         description: GHSA since 2020
         period: 1s
         source: https://github.com/github/advisory-database
         path: advisories
         fetchRetries: 50
-        years: [2020, 2021, 2022, 2023, 2024, 2025]
+        years: [ 2020, 2021, 2022, 2023, 2024, 2025 ]
       - !csaf
         description: Red Hat CSAF advisories since 2020
         source: redhat.com
         period: 1s
         fetchRetries: 50
         ignoreMissing: true
-        onlyPatterns: ["^cve-202"]
+        onlyPatterns: [ "^cve-202" ]
