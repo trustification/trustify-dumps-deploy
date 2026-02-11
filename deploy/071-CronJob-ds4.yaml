@@ -63,20 +63,22 @@ spec:
                   set -o pipefail
                   mkdir -p /mnt/data/builder/work
                   export TRUSTD_STORAGE_FS_PATH=/mnt/data/builder/work/storage # need this for now, because of data migration
-                  /app/target/release/xtask generate-dump --working-dir /mnt/data/builder/work --output /mnt/data/builder/work/dump.sql --input /etc/config/input-ds4.yaml |& tee /mnt/data/builder/work/dump.log
+                  /usr/local/bin/xtask generate-dump --working-dir /mnt/data/builder/work --output /mnt/data/builder/work/dump.sql --input /etc/config/input-ds4.yaml |& tee /mnt/data/builder/work/dump.log
                   cd /mnt/data/builder/work
 
-                  rm -f dump.sql.gz
-                  rm -f dump.log.gz
+                  rm -f dump.sql.xz
+                  rm -f dump.log.xz
 
-                  gzip dump.sql
-                  gzip dump.log
+                  xz dump.sql
+                  xz dump.log
                   tar cvf dump.tar /mnt/data/builder/work/storage
 
                   DATE=$(date -u +"%Y%m%dT%H%M%SZ")
 
-                  for i in dump.tar dump.log.gz dump.sql.gz; do
+                  for i in dump.tar dump.log.xz dump.sql.xz; do
+                      sha256sum "$i" > "${i}.sha256"
                       aws s3 cp "$i" "s3://$S3_BUCKET_NAME/$DATE/$i"
+                      aws s3 cp "${i}.sha256" "s3://$S3_BUCKET_NAME/$DATE/${i}.sha256"
                   done
               resources:
                 requests:
