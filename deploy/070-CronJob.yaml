@@ -71,7 +71,10 @@ spec:
 
                   xz dump.sql
                   xz dump.log
-                  tar cvf dump.tar /mnt/data/builder/work/storage
+
+                  pushd storage
+                  tar cvf ../dump.tar .
+                  popd
 
                   DATE=$(date -u +"%Y%m%dT%H%M%SZ")
 
