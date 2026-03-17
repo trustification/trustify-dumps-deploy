@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - patch: |-
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: trustify-dumps-create-dump
+      spec:
+        schedule: "0 6 * * *"
+        jobTemplate:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: run
+                    env:
+                      - name: S3_BUCKET_NAME
+                        value: "trustify-dumps-small"
+                      - name: INPUT_FILE
+                        value: "input-small.yaml"
+  - patch: |-
+      - op: replace
+        path: /metadata/name
+        value: trustify-dumps-create-dump-small
+    target:
+      kind: CronJob
+      name: trustify-dumps-create-dump

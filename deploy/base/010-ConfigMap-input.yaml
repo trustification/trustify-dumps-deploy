@@ -1,0 +1,69 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: trustify-dumps-import-config
+  labels:
+    app.kubernetes.io/name: trustify-dumps-import-config
+    app.kubernetes.io/component: create-dump
+    app.kubernetes.io/part-of: trustify-dumps
+
+data:
+  input.yaml: |
+    $schema: xtask/schema/generate-dump.json
+    import:
+      - !sbom
+        description: All Red Hat SBOMs
+        source: https://access.redhat.com/security/data/sbom/v1/
+        period: 1s
+        fetchRetries: 50
+        keys:
+          - https://access.redhat.com/security/data/97f5eac4.txt#77E79ABE93673533ED09EBE2DCE3823597F5EAC4
+
+      - !csaf
+        description: All Red Hat advisories
+        source: redhat.com
+        period: 1s
+        fetchRetries: 50
+
+      - !cve
+        description: All CVEs
+        source: https://github.com/CVEProject/cvelistV5
+        period: 1s
+  input-small.yaml: |
+    $schema: xtask/schema/generate-dump.json
+    import:
+      - !osv
+        description: RConsortium Advisory Database
+        source: https://github.com/RConsortium/r-advisory-database
+        period: 1s
+        fetchRetries: 50
+  input-ds4.yaml: |
+    $schema: ../../xtask/schema/generate-dump.json
+    import:
+      - !sbom
+        description: Red Hat SBOMs
+        source: https://access.redhat.com/security/data/sbom/v1/
+        period: 1s
+        fetchRetries: 50
+        ignoreMissing: true
+        keys:
+          - https://access.redhat.com/security/data/97f5eac4.txt#77E79ABE93673533ED09EBE2DCE3823597F5EAC4
+      - !cve
+        description: CVEs since 2020
+        source: https://github.com/CVEProject/cvelistV5
+        period: 1s
+        years: [ 2020, 2021, 2022, 2023, 2024, 2025 ]
+      - !osv
+        description: GHSA since 2020
+        period: 1s
+        source: https://github.com/github/advisory-database
+        path: advisories
+        fetchRetries: 50
+        years: [ 2020, 2021, 2022, 2023, 2024, 2025 ]
+      - !csaf
+        description: Red Hat CSAF advisories since 2020
+        source: redhat.com
+        period: 1s
+        fetchRetries: 50
+        ignoreMissing: true
+        onlyPatterns: [ "^cve-202" ]

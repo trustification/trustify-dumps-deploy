@@ -2,3 +2,4 @@
 /Dockerfile
 /test.yaml
 /deploy/010-Secret-aws.yaml
+/out

@@ -1,0 +1,103 @@
+kind: CronJob
+apiVersion: batch/v1
+metadata:
+  name: trustify-dumps-create-dump
+  labels:
+    app.kubernetes.io/name: trustify-dumps-create-dump
+    app.kubernetes.io/component: create-dump
+    app.kubernetes.io/part-of: trustify-dumps
+spec:
+  schedule: "0 1 * * *"
+  suspend: false
+
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: trustify-dumps-create-dump
+            app.kubernetes.io/component: create-dump
+            app.kubernetes.io/part-of: trustify-dumps
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: run
+              image: ghcr.io/guacsec/xtask:latest
+              env:
+                - name: TRUSTD_DB_MIN_CONN
+                  value: "2"
+                - name: TRUSTD_DB_MAX_CONN
+                  value: "4"
+                - name: RUST_LOG
+                  value: info
+                - name: S3_BUCKET_NAME
+                  value: "trustify-dumps"
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-secret
+                      key: access_key_id
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-secret
+                      key: secret_access_key
+                - name: AWS_DEFAULT_REGION
+                  value: "eu-west-1"
+                - name: INPUT_FILE
+                  value: "input.yaml"
+              command:
+                - bash
+                - -c
+                - |
+                  set -xe
+                  set -o pipefail
+                  mkdir -p /mnt/data/builder/work
+                  export TRUSTD_STORAGE_FS_PATH=/mnt/data/builder/work/storage # need this for now, because of data migration
+                  /usr/local/bin/xtask generate-dump --working-dir /mnt/data/builder/work --output /mnt/data/builder/work/dump.sql --input /etc/config/$INPUT_FILE |& tee /mnt/data/builder/work/dump.log
+                  cd /mnt/data/builder/work
+
+                  rm -f dump.sql.xz
+                  rm -f dump.log.xz
+
+                  xz dump.sql
+                  xz dump.log
+
+                  pushd storage
+                  tar cvf ../dump.tar .
+                  popd
+
+                  tar cvf - storage db | xz > storage.tar.xz
+
+                  DATE=$(date -u +"%Y%m%dT%H%M%SZ")
+
+                  for i in dump.tar dump.log.xz dump.sql.xz storage.tar.xz; do
+                      sha256sum "$i" > "${i}.sha256"
+                      aws s3 cp "$i" "s3://$S3_BUCKET_NAME/$DATE/$i"
+                      aws s3 cp "${i}.sha256" "s3://$S3_BUCKET_NAME/$DATE/${i}.sha256"
+                  done
+              resources:
+                requests:
+                  memory: 6Gi
+              imagePullPolicy: Always
+              volumeMounts:
+                - mountPath: /etc/config
+                  name: config
+                  readOnly: true
+                - mountPath: /mnt/data/builder
+                  name: builder
+                  readOnly: false
+          volumes:
+            - name: config
+              configMap:
+                name: trustify-dumps-import-config
+            - name: builder
+              ephemeral:
+                volumeClaimTemplate:
+                  spec:
+                    accessModes: [ "ReadWriteOnce" ]
+                    resources:
+                      requests:
+                        storage: 256Gi
