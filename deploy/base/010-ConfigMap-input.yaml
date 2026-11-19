@@ -35,6 +35,7 @@ data:
       - !osv
         description: RConsortium Advisory Database
         source: https://github.com/RConsortium/r-advisory-database
+        path: vulns
         period: 1s
         fetchRetries: 50
   input-ds4.yaml: |
