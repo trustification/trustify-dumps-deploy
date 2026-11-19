@@ -52,32 +52,53 @@ spec:
                 - bash
                 - -c
                 - |
-                  set -xe
+                  set -e
                   set -o pipefail
-                  mkdir -p /mnt/data/builder/work
-                  export TRUSTD_STORAGE_FS_PATH=/mnt/data/builder/work/storage # need this for now, because of data migration
-                  /usr/local/bin/xtask generate-dump --working-dir /mnt/data/builder/work --output /mnt/data/builder/work/dump.sql --input /etc/config/$INPUT_FILE |& tee /mnt/data/builder/work/dump.log
-                  cd /mnt/data/builder/work
 
-                  rm -f dump.sql.xz
-                  rm -f dump.log.xz
+                  WORK=/mnt/data/builder/work
+                  mkdir -p "$WORK"
+                  cd "$WORK"
 
-                  xz dump.sql
-                  xz dump.log
+                  run() {
+                      set -xe
+                      set -o pipefail
+                      export TRUSTD_STORAGE_FS_PATH=$WORK/storage # need this for now, because of data migration
+                      /usr/local/bin/xtask generate-dump --working-dir "$WORK" --output "$WORK/dump.sql" --input "/etc/config/$INPUT_FILE" |& tee "$WORK/dump.log"
 
-                  pushd storage
-                  tar cvf ../dump.tar .
-                  popd
+                      rm -f dump.sql.xz
+                      rm -f dump.log.xz
 
-                  tar cvf - storage db | xz > storage.tar.xz
+                      xz dump.sql
+                      xz dump.log
 
-                  DATE=$(date -u +"%Y%m%dT%H%M%SZ")
+                      pushd storage
+                      tar cvf ../dump.tar .
+                      popd
 
-                  for i in dump.tar dump.log.xz dump.sql.xz storage.tar.xz; do
-                      sha256sum "$i" > "${i}.sha256"
-                      aws s3 cp "$i" "s3://$S3_BUCKET_NAME/$DATE/$i"
-                      aws s3 cp "${i}.sha256" "s3://$S3_BUCKET_NAME/$DATE/${i}.sha256"
-                  done
+                      tar cvf - storage db | xz > storage.tar.xz
+
+                      DATE=$(date -u +"%Y%m%dT%H%M%SZ")
+
+                      for i in dump.tar dump.log.xz dump.sql.xz storage.tar.xz; do
+                          sha256sum "$i" > "${i}.sha256"
+                          aws s3 cp "$i" "s3://$S3_BUCKET_NAME/$DATE/$i"
+                          aws s3 cp "${i}.sha256" "s3://$S3_BUCKET_NAME/$DATE/${i}.sha256"
+                      done
+                  }
+
+                  # capture the complete output, and upload it in case of a failure
+                  # don't use "|| rc=$?" here, it would disable "set -e" inside the function
+                  set +e
+                  run 2>&1 | tee "$WORK/job.log"
+                  rc=$?
+                  set -e
+                  if [ "$rc" -ne 0 ]; then
+                      DATE=$(date -u +"%Y%m%dT%H%M%SZ")
+                      echo "Job failed (exit code: $rc), uploading log to s3://$S3_BUCKET_NAME/failed/$DATE/"
+                      xz -c "$WORK/job.log" > "$WORK/job.log.xz"
+                      aws s3 cp "$WORK/job.log.xz" "s3://$S3_BUCKET_NAME/failed/$DATE/job.log.xz" || echo "Failed to upload log"
+                      exit "$rc"
+                  fi
               resources:
                 requests:
                   memory: 6Gi
