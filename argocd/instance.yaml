@@ -1,0 +1,46 @@
+# Namespace-scoped Argo CD instance for trustify workloads.
+# Bootstrap resource: applied manually (requires cluster-admin), not synced by Argo CD itself.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trustify-gitops
+---
+apiVersion: argoproj.io/v1beta1
+kind: ArgoCD
+metadata:
+  name: trustify-gitops
+  namespace: trustify-gitops
+spec:
+  server:
+    insecure: true # TLS is terminated at the route
+    route:
+      enabled: true
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+  sso:
+    provider: dex
+    dex:
+      openShiftOAuth: true
+  rbac:
+    defaultPolicy: ""
+    scopes: "[groups]"
+    policy: |
+      g, cluster-admins, role:admin
+      g, system:cluster-admins, role:admin
+  controller:
+    resources:
+      requests: { cpu: 250m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  repo:
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  redis:
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 500m, memory: 256Mi }
+  applicationSet:
+    enabled: false
+  notifications:
+    enabled: false

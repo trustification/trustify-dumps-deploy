@@ -2,12 +2,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
   name: trustify-dumps
-  namespace: openshift-gitops
+  namespace: trustify-gitops
 spec:
   description: Trustify dump generation
-  # Applications for this project may live in the trustify-dumps namespace
-  sourceNamespaces:
-    - trustify-dumps
   sourceRepos:
     - https://github.com/trustification/trustify-dumps-deploy.git
   destinations:

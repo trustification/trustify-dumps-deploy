@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: trustify-dumps
-  namespace: trustify-dumps
+  namespace: trustify-gitops
 spec:
   project: trustify-dumps
   source:

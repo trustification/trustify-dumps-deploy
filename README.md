@@ -5,10 +5,10 @@ See: <https://serve-trustify-dumps.apps.cluster.trustification.rocks/>
 ## Deploy
 
 Manifests are managed with [kustomize](https://kustomize.io/) (built into `kubectl` and `oc`)
-and deployed by ArgoCD (OpenShift GitOps) from the `main` branch.
+and deployed by ArgoCD (OpenShift GitOps, instance `trustify-gitops`) from the `main` branch.
 
 ```
-argocd/                       # ArgoCD AppProject + Application (syncs deploy/overlays/all)
+argocd/                       # ArgoCD instance, AppProject + Application (syncs deploy/overlays/all)
 deploy/
   base/                        # CronJob template
   common/                      # shared resources (import ConfigMap)
@@ -38,16 +38,17 @@ kubectl kustomize deploy/overlays/all
 
 ### One-time ArgoCD setup
 
-The Application lives in the `trustify-dumps` namespace ("apps in any namespace"), restricted by the
-`trustify-dumps` AppProject to deploying ConfigMaps and CronJobs into that namespace.
+Deployment uses a dedicated, namespace-scoped Argo CD instance in the `trustify-gitops` namespace
+(the cluster-wide `openshift-gitops` instance is reserved for cluster configuration). The
+`trustify-dumps` AppProject restricts it to this repository, the `trustify-dumps` namespace and
+ConfigMaps/CronJobs. These bootstrap resources are applied manually by a cluster admin:
 
 ```bash
-# allow the openshift-gitops instance to manage the namespace
-oc label namespace trustify-dumps argocd.argoproj.io/managed-by=openshift-gitops
-# allow Applications in the trustify-dumps namespace (this replaces the whole list, include any existing entries)
-oc patch argocd openshift-gitops -n openshift-gitops --type merge -p '{"spec":{"sourceNamespaces":["trustify-dumps"]}}'
-oc apply -f argocd/appproject.yaml
-oc apply -f argocd/application.yaml
+oc apply -f argocd/instance.yaml       # namespace + ArgoCD instance
+oc label namespace trustify-dumps argocd.argoproj.io/managed-by=trustify-gitops
+oc apply -f argocd/appproject.yaml -f argocd/application.yaml
 ```
+
+UI: <https://trustify-gitops-server-trustify-gitops.apps.cluster.trustification.rocks/>
 
 After that, changes merged to `main` are synced automatically.
