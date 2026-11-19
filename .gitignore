@@ -3,3 +3,6 @@
 /test.yaml
 /deploy/010-Secret-aws.yaml
 /out
+# never commit secrets
+*Secret*.yaml
+*secret*.yaml
