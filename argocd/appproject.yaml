@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: trustify-dumps
+  namespace: openshift-gitops
+spec:
+  description: Trustify dump generation
+  # Applications for this project may live in the trustify-dumps namespace
+  sourceNamespaces:
+    - trustify-dumps
+  sourceRepos:
+    - https://github.com/trustification/trustify-dumps-deploy.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: trustify-dumps
+  # no cluster-scoped resources
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ConfigMap
+    - group: batch
+      kind: CronJob

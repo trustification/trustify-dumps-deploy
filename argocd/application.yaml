@@ -2,9 +2,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: trustify-dumps
-  namespace: openshift-gitops
+  namespace: trustify-dumps
 spec:
-  project: default
+  project: trustify-dumps
   source:
     repoURL: https://github.com/trustification/trustify-dumps-deploy.git
     targetRevision: main
