@@ -63,7 +63,7 @@ spec:
                       set -xe
                       set -o pipefail
                       export TRUSTD_STORAGE_FS_PATH=$WORK/storage # need this for now, because of data migration
-                      /usr/local/bin/xtask generate-dump --working-dir "$WORK" --output "$WORK/dump.sql" --input "/etc/config/$INPUT_FILE" |& tee "$WORK/dump.log"
+                      /usr/local/bin/xtask generate-dump --keep-going --working-dir "$WORK" --output "$WORK/dump.sql" --input "/etc/config/$INPUT_FILE" |& tee "$WORK/dump.log"
 
                       rm -f dump.sql.xz
                       rm -f dump.log.xz
