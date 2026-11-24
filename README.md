@@ -52,3 +52,36 @@ oc apply -f argocd/appproject.yaml -f argocd/application.yaml
 UI: <https://trustify-gitops-server-trustify-gitops.apps.cluster.trustification.rocks/>
 
 After that, changes merged to `main` are synced automatically.
+
+### Job resources
+
+Each dump job gets a fresh ephemeral volume: default and ds4 request 512 GiB each,
+while small requests 16 GiB. The shared size is set in `deploy/base/CronJob.yaml`;
+the small overlay overrides it. The base also requests 4 CPUs and 12 GiB of memory
+for default and ds4; the small overlay removes that CPU request and requests 6 GiB
+of memory. Changes apply to newly created jobs.
+
+Successful and failed jobs are automatically deleted (`successfulJobsHistoryLimit: 0`
+and `failedJobsHistoryLimit: 0`),
+along with their pods and ephemeral volume claims. The `gp3-csi` storage class
+deletes the backing EBS volumes when the claims are deleted. Successful dump
+artifacts and uploaded failure logs remain in S3. Jobs still running or retrying
+are not removed by these history limits.
+
+We clean up finished jobs to avoid paying for their provisioned EBS storage
+between runs. Retaining a completed or failed pod also retains its ephemeral
+volume claim and backing EBS volume, even when no worker is using it. Artifacts
+and failure logs are uploaded to S3, so keeping these volumes is unnecessary.
+
+The base requests a database connection pool of 8–32 connections; small keeps
+2–4 connections. These variables are read by the embedded database setup used by
+`xtask generate-dump`.
+
+Default and ds4 use 4 correlation workers (`TRUSTD_CORRELATION_WORKERS`),
+256 MiB PostgreSQL work memory for correlation transactions
+(`TRUSTD_CORRELATION_WORK_MEM`), and an 8 GiB WAL checkpoint target
+(`TRUSTD_EMBEDDED_PG_SETTINGS=max_wal_size=8GB`). Small keeps the upstream defaults
+by removing these overrides. Work memory applies per sort/hash operation, rather
+than acting as a total memory cap; WAL can also exceed `max_wal_size`.
+These settings require the xtask support added in
+[Trustify PR #2908](https://github.com/guacsec/trustify/pull/2908).

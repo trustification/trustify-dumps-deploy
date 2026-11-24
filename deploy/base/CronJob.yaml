@@ -11,7 +11,8 @@ spec:
   suspend: false
 
   concurrencyPolicy: Forbid
-  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 0
   jobTemplate:
     spec:
       template:
@@ -27,9 +28,15 @@ spec:
               image: ghcr.io/guacsec/xtask:latest
               env:
                 - name: TRUSTD_DB_MIN_CONN
-                  value: "2"
+                  value: "8"
                 - name: TRUSTD_DB_MAX_CONN
+                  value: "32"
+                - name: TRUSTD_CORRELATION_WORKERS
                   value: "4"
+                - name: TRUSTD_CORRELATION_WORK_MEM
+                  value: "256MiB"
+                - name: TRUSTD_EMBEDDED_PG_SETTINGS
+                  value: "max_wal_size=8GB"
                 - name: RUST_LOG
                   value: info
                 - name: S3_BUCKET_NAME
@@ -101,7 +108,8 @@ spec:
                   fi
               resources:
                 requests:
-                  memory: 6Gi
+                  cpu: "4"
+                  memory: 12Gi
               imagePullPolicy: Always
               volumeMounts:
                 - mountPath: /etc/config
@@ -121,4 +129,4 @@ spec:
                     accessModes: [ "ReadWriteOnce" ]
                     resources:
                       requests:
-                        storage: 256Gi
+                        storage: 512Gi

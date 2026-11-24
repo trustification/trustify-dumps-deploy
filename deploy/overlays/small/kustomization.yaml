@@ -16,9 +16,32 @@ patches:
           spec:
             template:
               spec:
+                volumes:
+                  - name: builder
+                    ephemeral:
+                      volumeClaimTemplate:
+                        spec:
+                          accessModes: [ "ReadWriteOnce" ]
+                          resources:
+                            requests:
+                              storage: 16Gi
                 containers:
                   - name: run
+                    resources:
+                      requests:
+                        cpu: null
+                        memory: 6Gi
                     env:
+                      - name: TRUSTD_DB_MIN_CONN
+                        value: "2"
+                      - name: TRUSTD_DB_MAX_CONN
+                        value: "4"
+                      - name: TRUSTD_CORRELATION_WORKERS
+                        $patch: delete
+                      - name: TRUSTD_CORRELATION_WORK_MEM
+                        $patch: delete
+                      - name: TRUSTD_EMBEDDED_PG_SETTINGS
+                        $patch: delete
                       - name: S3_BUCKET_NAME
                         value: "trustify-dumps-small"
                       - name: INPUT_FILE
