@@ -1,0 +1,15 @@
+apiVersion: autoscaling.openshift.io/v1
+kind: ClusterAutoscaler
+metadata:
+  name: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  # No global resourceLimits: unrelated worker pools can grow independently.
+  # Only the dump MachineSet has a MachineAutoscaler (maxReplicas: 2).
+  scaleDown:
+    enabled: true
+    cordonNodeBeforeTerminating: Enabled
+    delayAfterAdd: 10m
+    unneededTime: 10m
+    utilizationThreshold: "0.5"

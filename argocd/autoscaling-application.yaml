@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: trustify-dumps-autoscaling
+  namespace: openshift-gitops
+  # No cascading deletion finalizer: removing this Application must not drain workers.
+spec:
+  project: trustify-dumps-autoscaling
+  source:
+    repoURL: https://github.com/trustification/trustify-dumps-deploy.git
+    targetRevision: deploy/dump-autoscaling
+    path: infra/autoscaling
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-machine-api
+  ignoreDifferences:
+    - group: machine.openshift.io
+      kind: MachineSet
+      name: cluster-9flm8-dumps-arm64-eu-west-1b
+      namespace: openshift-machine-api
+      jsonPointers:
+        - /spec/replicas
+        - /spec/template/spec/providerSpec/value/ami/id
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true

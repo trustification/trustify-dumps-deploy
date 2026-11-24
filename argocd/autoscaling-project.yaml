@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: trustify-dumps-autoscaling
+  namespace: openshift-gitops
+spec:
+  description: Dedicated worker autoscaling for Trustify dump generation
+  sourceRepos:
+    - https://github.com/trustification/trustify-dumps-deploy.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: openshift-machine-api
+  clusterResourceWhitelist:
+    - group: autoscaling.openshift.io
+      kind: ClusterAutoscaler
+  namespaceResourceWhitelist:
+    - group: machine.openshift.io
+      kind: MachineSet
+    - group: autoscaling.openshift.io
+      kind: MachineAutoscaler
+    - group: batch
+      kind: Job

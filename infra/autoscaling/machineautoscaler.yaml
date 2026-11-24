@@ -1,0 +1,14 @@
+apiVersion: autoscaling.openshift.io/v1beta1
+kind: MachineAutoscaler
+metadata:
+  name: trustify-dumps-arm64
+  namespace: openshift-machine-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  minReplicas: 0
+  maxReplicas: 2
+  scaleTargetRef:
+    apiVersion: machine.openshift.io/v1beta1
+    kind: MachineSet
+    name: cluster-9flm8-dumps-arm64-eu-west-1b

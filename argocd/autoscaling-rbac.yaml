@@ -1,0 +1,69 @@
+# Administrative bootstrap, not part of either Application's sync path.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: trustify-dumps-autoscaling
+  namespace: openshift-machine-api
+rules:
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+  - apiGroups: [machine.openshift.io]
+    resources: [machinesets]
+    verbs: [get, list, watch, create]
+  - apiGroups: [machine.openshift.io]
+    resources: [machinesets]
+    resourceNames: [cluster-9flm8-dumps-arm64-eu-west-1b]
+    verbs: [update, patch, delete]
+  - apiGroups: [autoscaling.openshift.io]
+    resources: [machineautoscalers]
+    verbs: [get, list, watch, create]
+  - apiGroups: [autoscaling.openshift.io]
+    resources: [machineautoscalers]
+    resourceNames: [trustify-dumps-arm64]
+    verbs: [update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: trustify-dumps-autoscaling
+  namespace: openshift-machine-api
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: trustify-dumps-autoscaling
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: trustify-dumps-autoscaling
+rules:
+  # Kubernetes cannot restrict create by resourceNames. The API permits only
+  # the singleton ClusterAutoscaler named "default".
+  - apiGroups: [autoscaling.openshift.io]
+    resources: [clusterautoscalers]
+    verbs: [get, list, watch, create]
+  - apiGroups: [autoscaling.openshift.io]
+    resources: [clusterautoscalers]
+    resourceNames: [default]
+    verbs: [update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: trustify-dumps-autoscaling
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: trustify-dumps-autoscaling

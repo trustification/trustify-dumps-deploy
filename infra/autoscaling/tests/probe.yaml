@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trustify-dumps-arm64-probe
+  namespace: openshift-machine-api
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/arch: arm64
+        workload: trustify-dumps
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: trustify-dumps
+          effect: NoSchedule
+      containers:
+        - name: probe
+          image: ghcr.io/guacsec/xtask:latest
+          command: [bash, -ec]
+          args:
+            - |
+              uname -m
+              echo "Dedicated Arm worker scheduled a 6-CPU / 24-GiB pod"
+              sleep 600
+          resources:
+            requests:
+              cpu: "6"
+              memory: 24Gi
