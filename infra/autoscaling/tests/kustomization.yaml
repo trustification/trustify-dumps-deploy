@@ -4,3 +4,4 @@ resources:
   - probe.yaml
   - probe-two.yaml
   - untolerated.yaml
+  - storage.yaml

@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trustify-dumps-storage-probe
+  namespace: openshift-machine-api
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/arch: arm64
+        workload: trustify-dumps
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: trustify-dumps
+          effect: NoSchedule
+      containers:
+        - name: probe
+          image: ghcr.io/guacsec/xtask:latest
+          command: [bash, -ec]
+          args:
+            - |
+              df -h /mnt/work
+              echo "ephemeral storage validation" > /mnt/work/probe
+              test -s /mnt/work/probe
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: work
+              mountPath: /mnt/work
+      volumes:
+        - name: work
+          ephemeral:
+            volumeClaimTemplate:
+              spec:
+                storageClassName: gp3-csi
+                accessModes: [ReadWriteOnce]
+                resources:
+                  requests:
+                    storage: 512Gi
