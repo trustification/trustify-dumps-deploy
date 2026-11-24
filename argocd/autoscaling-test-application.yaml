@@ -14,5 +14,6 @@ spec:
     namespace: openshift-machine-api
   syncPolicy:
     automated:
+      allowEmpty: true
       prune: true
       selfHeal: true
