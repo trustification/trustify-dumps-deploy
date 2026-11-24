@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trustify-dumps-untolerated-probe
+  namespace: openshift-machine-api
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        workload: trustify-dumps
+      containers:
+        - name: probe
+          image: ghcr.io/guacsec/xtask:latest
+          command: [bash, -ec, "echo unexpected scheduling; exit 1"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
