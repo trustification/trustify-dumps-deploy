@@ -20,14 +20,18 @@ were not changed.
 - Existing MachineSet replica counts stayed 3 / 3 / 2.
 - Generated autoscaler arguments contained no global node/CPU/memory ceilings.
 
-Probe resources are disabled via an empty test Kustomization. The test
-Application allows an empty desired state and prunes its Jobs, releasing their
-pods and pod-owned storage. Confirm final volume deletion and scale-down before
-declaring the lifecycle test complete.
+Probe resources are disabled via an empty test Kustomization. ArgoCD pruned all
+four probe Jobs and their pods. The 512-GiB PVC and PV disappeared. The autoscaler
+then reduced the dedicated MachineSet from two workers to one and finally zero
+after the configured idle intervals. Both Machine objects and both worker Nodes
+were deleted. Existing MachineSets remained at 3 / 3 / 2. Infrastructure and test
+Applications remained Synced / Healthy. The 0 → 1 → 2 → 0 lifecycle test passed.
 
 ## Migration blocker
 
 The running ARM64 `ghcr.io/guacsec/xtask:latest` image does **not** expose the
 correlation or embedded PostgreSQL options from PR #2908 in `generate-dump --help`.
-Do not migrate the CronJobs until an image containing that PR is identified and
-validated. S3 dump/failure-log tests using the tuned image are still outstanding.
+The user confirmed that no such image is available yet and migration must wait
+for the PR to merge and a new image to be published. Do not migrate the CronJobs
+until that image is identified and validated. S3 dump/failure-log tests using the
+tuned image are still outstanding.
