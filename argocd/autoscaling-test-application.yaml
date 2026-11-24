@@ -7,7 +7,7 @@ spec:
   project: trustify-dumps-autoscaling
   source:
     repoURL: https://github.com/trustification/trustify-dumps-deploy.git
-    targetRevision: deploy/dump-autoscaling
+    targetRevision: main
     path: infra/autoscaling/tests
   destination:
     server: https://kubernetes.default.svc
