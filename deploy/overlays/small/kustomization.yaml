@@ -14,8 +14,14 @@ patches:
         schedule: "0 6 * * *"
         jobTemplate:
           spec:
+            activeDeadlineSeconds: null
             template:
+              metadata:
+                annotations:
+                  cluster-autoscaler.kubernetes.io/safe-to-evict: null
               spec:
+                nodeSelector: null
+                tolerations: null
                 volumes:
                   - name: builder
                     ephemeral:

@@ -14,9 +14,10 @@ deploy/
   common/                      # shared resources (import ConfigMap)
   overlays/
     all/                       # everything below + common, synced by ArgoCD
-    default/                   # trustify-dumps (daily at 01:00 UTC)
-    ds4/                       # trustify-dumps-ds4 (daily at 12:00 UTC)
+    default/                   # trustify-dumps (Saturday at 06:00 UTC)
+    ds4/                       # trustify-dumps-ds4 (Saturday at 06:00 UTC)
     small/                     # trustify-dumps-small (daily at 06:00 UTC)
+infra/autoscaling/             # dedicated Arm pool; separate infrastructure Application
 ```
 
 ### Secrets
@@ -34,6 +35,9 @@ oc create secret generic aws-secret -n trustify-dumps \
 
 ```bash
 kubectl kustomize deploy/overlays/all
+kubectl kustomize infra/autoscaling
+oc apply --dry-run=server -k deploy/overlays/all
+oc apply --dry-run=server -k infra/autoscaling
 ```
 
 ### One-time ArgoCD setup
@@ -57,7 +61,7 @@ After that, changes merged to `main` are synced automatically.
 
 Each dump job gets a fresh ephemeral volume: default and ds4 request 512 GiB each,
 while small requests 16 GiB. The shared size is set in `deploy/base/CronJob.yaml`;
-the small overlay overrides it. The base also requests 4 CPUs and 12 GiB of memory
+the small overlay overrides it. The base also requests 6 CPUs and 24 GiB of memory
 for default and ds4; the small overlay removes that CPU request and requests 6 GiB
 of memory. Changes apply to newly created jobs.
 
@@ -85,3 +89,14 @@ by removing these overrides. Work memory applies per sort/hash operation, rather
 than acting as a total memory cap; WAL can also exceed `max_wal_size`.
 These settings require the xtask support added in
 [Trustify PR #2908](https://github.com/guacsec/trustify/pull/2908).
+
+Default and ds4 run weekly on Saturday at 06:00 UTC, on dedicated Arm workers.
+Small still runs every day at 06:00 UTC on the existing workers. All schedules
+explicitly use `Etc/UTC`. Large jobs have a 48-hour deadline covering scheduling,
+execution, and retries; small has no new deadline. The autoscaler cannot evict
+running large jobs for consolidation. Deadline termination, node failure, and
+forced deletion can bypass the final S3 failure-log upload.
+
+See [the autoscaling runbook](infra/autoscaling/README.md) for infrastructure
+ownership, preflight checks, staged activation, and rollback. Deploy and validate
+the dedicated pool before syncing the new large-job configuration.

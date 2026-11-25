@@ -7,7 +7,8 @@ metadata:
     app.kubernetes.io/component: create-dump
     app.kubernetes.io/part-of: trustify-dumps
 spec:
-  schedule: "0 1 * * *"
+  schedule: "0 6 * * 6"
+  timeZone: Etc/UTC
   suspend: false
 
   concurrencyPolicy: Forbid
@@ -15,13 +16,24 @@ spec:
   failedJobsHistoryLimit: 0
   jobTemplate:
     spec:
+      activeDeadlineSeconds: 172800
       template:
         metadata:
+          annotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
           labels:
             app.kubernetes.io/name: trustify-dumps-create-dump
             app.kubernetes.io/component: create-dump
             app.kubernetes.io/part-of: trustify-dumps
         spec:
+          nodeSelector:
+            kubernetes.io/arch: arm64
+            workload: trustify-dumps
+          tolerations:
+            - key: workload
+              operator: Equal
+              value: trustify-dumps
+              effect: NoSchedule
           restartPolicy: OnFailure
           containers:
             - name: run
@@ -108,8 +120,8 @@ spec:
                   fi
               resources:
                 requests:
-                  cpu: "4"
-                  memory: 12Gi
+                  cpu: "6"
+                  memory: 24Gi
               imagePullPolicy: Always
               volumeMounts:
                 - mountPath: /etc/config

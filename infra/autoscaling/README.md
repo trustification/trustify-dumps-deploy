@@ -1,9 +1,8 @@
 # Dedicated dump worker rollout
 
-This infrastructure is managed from main and does not change any
-CronJobs. ArgoCD owns the MachineSet, ClusterAutoscaler, MachineAutoscaler and
-probe Jobs. Existing MachineSets remain unchanged. Default and ds4 will move to
-this pool only after testing succeeds; small will remain on existing workers.
+This infrastructure is managed from main. ArgoCD owns the MachineSet,
+ClusterAutoscaler and MachineAutoscaler. Default and ds4 target this pool;
+small stays on existing workers. Existing MachineSets remain unchanged.
 
 ## GitOps bootstrap
 
@@ -19,8 +18,9 @@ finalizer. The separate test Application follows main's
 `infra/autoscaling/tests` path and permits pruning disposable test Jobs.
 Register `argocd/autoscaling-test-application.yaml` only after infrastructure sync
 succeeds. Test Jobs are deliberately excluded from the infrastructure overlay.
-The test Kustomization is currently empty: the test Application remains dormant
-for the tuned-image checks that must precede CronJob migration. See
+The test Kustomization is currently empty after successful pool and tuned-image
+validation. The test Application and its workload-namespace RBAC can be registered
+again for future checks using the optional bootstrap manifests. See
 [the validation results](validation.md).
 
 ## Pool and ownership
@@ -68,13 +68,13 @@ additional On-Demand vCPUs, two 120-GiB root disks and, after migration, two
    the test Application. Confirm S3 artifacts/failure logs, PVC/PV/EBS cleanup and
    no autoscaler eviction of running dump pods. Manual test Jobs are not owned by
    CronJobs: remove them through GitOps to release their ephemeral volumes.
-6. The validated infrastructure is now on main, with both Applications following
-   main. Keep test resources disabled while waiting for PR #2908 and its image.
-   After the tuned-image tests pass, remove the test Application/temporary test
-   RBAC and publish the separate workload changes. Existing workload auto-sync
-   stays enabled throughout; no CronJob changes are published before validation.
+6. The infrastructure and tuned image have passed validation. After ArgoCD prunes
+   the test resources, unregister the test Application and its temporary
+   workload-namespace RBAC, then publish the workload changes. Existing workload
+   auto-sync stays enabled throughout. To repeat validation, register the optional
+   test Application/RBAC again and enable the desired test manifests through Git.
 
-The normal workloads will request 6 CPUs / 24 GiB, run Saturday 06:00 UTC and use
+The large workloads request 6 CPUs / 24 GiB, run Saturday 06:00 UTC and use
 48-hour Job deadlines. Small stays daily 06:00 UTC. Keep correlation settings,
 S3 uploads, zero successful/failed history retention and ephemeral gp3 storage.
 External termination or deadline expiry can bypass final failure-log uploads.
