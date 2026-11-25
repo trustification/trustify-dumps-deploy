@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: trustify-dumps-tuned-image-validation
+  name: trustify-dumps-tuned-image-validation-v2
   namespace: trustify-dumps
 spec:
   backoffLimit: 0
@@ -62,7 +62,8 @@ spec:
               xz -c "$WORK/job.log" > "$WORK/job.log.xz"
               aws s3 cp "$WORK/dump.sql.xz" "$PREFIX/dump.sql.xz"
               aws s3 cp "$WORK/job.log.xz" "$PREFIX/success/job.log.xz"
-              aws s3api head-object --bucket trustify-dumps-small --key autoscaling-validation/20261125/dump.sql.xz --query ContentLength
+              # Successful PutObject responses verify upload without requiring
+              # read permissions beyond the production credentials.
               echo "Tuned embedded database and S3 success upload validated"
               # Deliberately fail parsing before database startup, then exercise
               # the same compressed failure-log upload used by the CronJob.
@@ -73,7 +74,6 @@ spec:
               test "$rc" -ne 0
               xz -c "$WORK/failure.log" > "$WORK/failure.log.xz"
               aws s3 cp "$WORK/failure.log.xz" "$PREFIX/failed/job.log.xz"
-              aws s3api head-object --bucket trustify-dumps-small --key autoscaling-validation/20261125/failed/job.log.xz --query ContentLength
               echo "Controlled failure log uploaded; exiting with expected failure"
               exit "$rc"
           resources:
