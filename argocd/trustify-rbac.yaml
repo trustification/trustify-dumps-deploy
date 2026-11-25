@@ -28,3 +28,18 @@ subjects:
   - kind: ServiceAccount
     name: trustify-gitops-argocd-application-controller
     namespace: trustify-gitops
+---
+# Tempo admission requires the submitting user to have delegated authentication
+# permissions when managing a TempoStack with OpenShift tenancy.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: trustify-gitops-tempo-validation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: trustify-gitops-argocd-application-controller
+    namespace: trustify-gitops

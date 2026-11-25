@@ -52,6 +52,11 @@ oc apply -f argocd/trustify-project.yaml -f argocd/trustify-rbac.yaml
 oc apply -f argocd/trustify-platform-application.yaml -f argocd/trustify-application.yaml
 ```
 
+The bootstrap RBAC includes the built-in `system:auth-delegator` role for the
+application controller. Tempo admission requires TokenReview and
+SubjectAccessReview creation privileges when submitting OpenShift tenancy
+configuration. This binding is maintained manually, outside either Application.
+
 Both Applications start with manual sync and no cascading-deletion finalizer.
 Review their Argo CD differences before synchronization. First sync the platform
 Application and check that its operators remain ready. Perform the one-time
@@ -80,8 +85,8 @@ old Helm release: the Terraform credentials and shared observability stay in pla
    ```
 
    Wait for that generated job to complete and inspect its logs. The job refuses
-   a different endpoint, database, or login; it retains the existing users and
-   passwords and prepares grants for migrations running as the existing admin.
+   a different endpoint, database, or login; it retains administrator ownership,
+   existing users and passwords, and prepares grants for admin-run migrations.
    It is outside every Argo CD source path and never runs on normal sync.
 5. Empty only `s3://trustify-default`, preserving the bucket and IAM configuration.
    Check versioning first; if enabled, remove historical versions and delete
@@ -104,6 +109,14 @@ old Helm release: the Terraform credentials and shared observability stay in pla
    Regular sync has database creation and importer seeding disabled.
 9. Require healthy server/importer pods, successful authentication and sample
    ingestion/retrieval, and working metrics/traces. Check both public endpoints.
+
+   ```sh
+   python3 operations/trustify/smoke-test.py --write
+   python3 operations/trustify/smoke-test.py --server https://server-trustify.apps.cluster.trustification.rocks
+   ```
+
+   Credentials are read from Terraform's existing Secrets into memory; neither
+   credentials nor access tokens are printed or written to disk.
 10. Enable automated sync with `prune: false` and `selfHeal: true` in both
     Application manifests and reapply them. Verify a second sync preserves data.
 

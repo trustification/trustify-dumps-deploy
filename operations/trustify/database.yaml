@@ -81,7 +81,8 @@ spec:
               SELECT pg_terminate_backend(pid) FROM pg_stat_activity
                 WHERE datname = :'target_db' AND pid <> pg_backend_pid();
               DROP DATABASE IF EXISTS :"target_db";
-              CREATE DATABASE :"target_db" OWNER :"app_user" TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C';
+              CREATE DATABASE :"target_db" TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C';
+              GRANT CONNECT, TEMPORARY ON DATABASE :"target_db" TO :"app_user";
               SQL
                   PGDATABASE="$APP_DB" psql -X --set=ON_ERROR_STOP=1 <<'SQL'
               \getenv app_user APP_USER
