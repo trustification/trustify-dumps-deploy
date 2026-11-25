@@ -61,3 +61,16 @@ without changing IAM permissions.
 
 The test Kustomization is empty again so ArgoCD prunes the Job, pod and volume.
 This is a startup/upload smoke test, not a full dataset or throughput benchmark.
+
+## CronJob migration — 25 November 2026
+
+Workload revision `917869a` was applied by ArgoCD and reported Synced / Healthy.
+Default and ds4 now target the dedicated Arm pool with 6 CPUs / 24 GiB, 512-GiB
+ephemeral storage, the validated tuning and a 48-hour deadline. Both run Saturday
+at 06:00 UTC. Small remains daily at 06:00 UTC on existing workers, with 6 GiB
+memory, 16-GiB storage, no new deadline and its smaller/default tuning. All three
+retain zero successful and failed Jobs. Existing running Jobs were not restarted.
+
+ArgoCD pruned the validation Job and its PVC/PV. The test Application and its
+temporary workload-namespace Role/RoleBinding were removed after cleanup. The
+test manifests remain disabled as examples for future validation.
