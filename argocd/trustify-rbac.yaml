@@ -1,0 +1,30 @@
+# Bootstrap only: grants the namespace-scoped controller access to the CRs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: trustify-gitops-operator-resources
+  namespace: trustify
+rules:
+  - apiGroups: [opentelemetry.io]
+    resources: [opentelemetrycollectors]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [tempo.grafana.com]
+    resources: [tempostacks]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [monitoring.coreos.com]
+    resources: [servicemonitors]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: trustify-gitops-operator-resources
+  namespace: trustify
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: trustify-gitops-operator-resources
+subjects:
+  - kind: ServiceAccount
+    name: trustify-gitops-argocd-application-controller
+    namespace: trustify-gitops

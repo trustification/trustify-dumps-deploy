@@ -1,0 +1,86 @@
+# Credentials and AWS connection ConfigMaps are owned by prod/terraform in
+# trustify-installation. Only public OIDC identifiers are literal values here.
+appDomain: -trustify.apps.cluster.trustification.rocks
+image:
+  # Upstream main 5c6af24e02e19af674c52a15059d78679ea5814e.
+  # Published by https://github.com/guacsec/trustify/actions/runs/45612628194
+  fullName: ghcr.io/guacsec/trustd@sha256:267909474bb68d40a6aca66b7e6f1c93939516a4db33428be45a4d167088347d
+openshift:
+  enabled: true
+  useServiceCa: true
+ingress:
+  className: openshift-default
+  additionalAnnotations:
+    haproxy.router.openshift.io/timeout: 5m
+authenticator:
+  type: cognito
+oidc:
+  issuerUrl: https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_2u8N3cZw7
+  clients:
+    frontend:
+      clientId: gkf74bd285pklk3a06iiqm0jf
+    cli:
+      clientId: 403n7u9ucrsnv9m2uovfturdms
+      clientSecret:
+        valueFrom:
+          secretKeyRef:
+            name: oidc-cli
+            key: client-secret
+database:
+  sslMode: require
+  host:
+    valueFrom:
+      secretKeyRef: {name: postgresql-credentials, key: db.host}
+  port:
+    valueFrom:
+      secretKeyRef: {name: postgresql-credentials, key: db.port}
+  name:
+    valueFrom:
+      secretKeyRef: {name: postgresql-credentials, key: db.name}
+  username:
+    valueFrom:
+      secretKeyRef: {name: postgresql-credentials, key: db.user}
+  password:
+    valueFrom:
+      secretKeyRef: {name: postgresql-credentials, key: db.password}
+migrateDatabase:
+  username:
+    valueFrom:
+      secretKeyRef: {name: postgresql-admin-credentials, key: db.user}
+  password:
+    valueFrom:
+      secretKeyRef: {name: postgresql-admin-credentials, key: db.password}
+storage:
+  type: s3
+  bucket: trustify-default
+  region:
+    valueFrom:
+      configMapKeyRef: {name: aws-storage, key: region}
+  accessKey:
+    valueFrom:
+      secretKeyRef: {name: storage-credentials, key: aws_access_key_id}
+  secretKey:
+    valueFrom:
+      secretKeyRef: {name: storage-credentials, key: aws_secret_access_key}
+collector:
+  endpoint: http://otel-collector:4317
+metrics:
+  enabled: true
+tracing:
+  enabled: true
+modules:
+  createDatabase:
+    enabled: false
+  createImporters:
+    enabled: false
+  migrateDatabase:
+    enabled: true
+  server:
+    resources:
+      requests: {cpu: "1", memory: 6Gi}
+  importer:
+    concurrency: 1
+    resources:
+      requests: {cpu: "1", memory: 4Gi}
+    workingDirectory:
+      size: 32Gi

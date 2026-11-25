@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: trustify-platform
+  namespace: trustify-gitops
+  # Deliberately no cascading-deletion finalizer.
+spec:
+  project: trustify
+  source:
+    repoURL: https://github.com/trustification/trustify-dumps-deploy.git
+    targetRevision: main
+    path: deploy/trustify/platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: trustify
+  syncPolicy:
+    syncOptions:
+      - FailOnSharedResource=true

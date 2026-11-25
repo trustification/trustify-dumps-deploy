@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: trustify
+  namespace: trustify-gitops
+  # Deliberately no cascading-deletion finalizer.
+spec:
+  project: trustify
+  sources:
+    - repoURL: https://github.com/guacsec/trustify-helm-charts.git
+      targetRevision: 4c13b324a2b18b371011beb4c001a407b00e54b0
+      path: charts/trustify
+      helm:
+        releaseName: trustify
+        valueFiles:
+          - $values/deploy/trustify/values.yaml
+    - repoURL: https://github.com/trustification/trustify-dumps-deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: trustify
+  # Enable automated self-healing after the manual reset and first sync.
+  syncPolicy:
+    syncOptions:
+      - FailOnSharedResource=true

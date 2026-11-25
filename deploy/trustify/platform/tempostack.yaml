@@ -1,0 +1,137 @@
+{
+  "apiVersion": "tempo.grafana.com/v1alpha1",
+  "kind": "TempoStack",
+  "metadata": {
+    "name": "tempo",
+    "namespace": "trustify"
+  },
+  "spec": {
+    "hashRing": {
+      "memberlist": {}
+    },
+    "images": {},
+    "limits": {
+      "global": {
+        "ingestion": {},
+        "query": {
+          "maxSearchDuration": "0s"
+        }
+      }
+    },
+    "managementState": "Managed",
+    "networkPolicy": {
+      "enabled": true
+    },
+    "observability": {
+      "grafana": {
+        "instanceSelector": {}
+      },
+      "metrics": {},
+      "tracing": {
+        "jaeger_agent_endpoint": "localhost:6831",
+        "otlp_http_endpoint": "http://localhost:4320"
+      }
+    },
+    "replicationFactor": 1,
+    "resources": {
+      "total": {
+        "limits": {
+          "cpu": "2",
+          "memory": "2Gi"
+        }
+      }
+    },
+    "retention": {
+      "global": {
+        "traces": "48h0m0s"
+      }
+    },
+    "search": {
+      "defaultResultLimit": 20,
+      "maxDuration": "0s"
+    },
+    "serviceAccount": "tempo-tempo",
+    "storage": {
+      "secret": {
+        "name": "storage-tempo-credentials",
+        "type": "s3"
+      },
+      "tls": {
+        "enabled": false
+      }
+    },
+    "storageSize": "1Gi",
+    "template": {
+      "compactor": {
+        "podSecurityContext": {},
+        "replicas": 1
+      },
+      "distributor": {
+        "component": {
+          "podSecurityContext": {},
+          "replicas": 1
+        },
+        "tls": {
+          "enabled": false
+        }
+      },
+      "gateway": {
+        "component": {
+          "podSecurityContext": {},
+          "replicas": 1
+        },
+        "enabled": true,
+        "ingress": {
+          "route": {
+            "termination": "reencrypt"
+          },
+          "type": "route"
+        },
+        "rbac": {
+          "enabled": false
+        }
+      },
+      "ingester": {
+        "podSecurityContext": {},
+        "replicas": 1
+      },
+      "metricsGenerator": {
+        "component": {},
+        "enabled": false
+      },
+      "querier": {
+        "podSecurityContext": {},
+        "replicas": 1
+      },
+      "queryFrontend": {
+        "component": {
+          "podSecurityContext": {},
+          "replicas": 1
+        },
+        "jaegerQuery": {
+          "enabled": true,
+          "ingress": {
+            "route": {}
+          },
+          "monitorTab": {
+            "enabled": false,
+            "prometheusEndpoint": ""
+          },
+          "servicesQueryDuration": "72h0m0s",
+          "tempoQuery": {}
+        },
+        "mcpServer": {}
+      }
+    },
+    "tenants": {
+      "authentication": [
+        {
+          "tenantId": "1610b0c3-c509-4592-a256-a1871353dbfb",
+          "tenantName": "prod"
+        }
+      ],
+      "mode": "openshift"
+    },
+    "timeout": "30s"
+  }
+}

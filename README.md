@@ -1,5 +1,7 @@
 # Generate trustify dumps
 
+The existing Trustify service also has a separate [GitOps deployment and fresh-install runbook](deploy/trustify/README.md).
+
 See: <https://serve-trustify-dumps.apps.cluster.trustification.rocks/>
 
 ## Deploy
