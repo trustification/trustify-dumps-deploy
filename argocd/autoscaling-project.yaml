@@ -9,6 +9,8 @@ spec:
     - https://github.com/trustification/trustify-dumps-deploy.git
   destinations:
     - server: https://kubernetes.default.svc
+      namespace: trustify-dumps
+    - server: https://kubernetes.default.svc
       namespace: openshift-machine-api
   clusterResourceWhitelist:
     - group: autoscaling.openshift.io

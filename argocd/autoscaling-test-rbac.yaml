@@ -1,0 +1,28 @@
+# Temporary access for the registered infrastructure test Application.
+# Reuses the workload namespace's existing aws-secret without copying credentials.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: trustify-dumps-image-validation
+  namespace: trustify-dumps
+rules:
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: trustify-dumps-image-validation
+  namespace: trustify-dumps
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: trustify-dumps-image-validation

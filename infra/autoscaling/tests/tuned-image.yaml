@@ -1,0 +1,95 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trustify-dumps-tuned-image-validation
+  namespace: trustify-dumps
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/arch: arm64
+        workload: trustify-dumps
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: trustify-dumps
+          effect: NoSchedule
+      containers:
+        - name: validate
+          image: ghcr.io/guacsec/xtask@sha256:991685f3224b4544c705ccd4a8ae61a0743d992fbf641e3aace8450154ef8c27
+          env:
+            - name: TRUSTD_DB_MIN_CONN
+              value: "8"
+            - name: TRUSTD_DB_MAX_CONN
+              value: "32"
+            - name: TRUSTD_CORRELATION_WORKERS
+              value: "4"
+            - name: TRUSTD_CORRELATION_WORK_MEM
+              value: "256MiB"
+            - name: TRUSTD_EMBEDDED_PG_SETTINGS
+              value: max_wal_size=8GB
+            - name: RUST_LOG
+              value: info
+            - name: AWS_DEFAULT_REGION
+              value: eu-west-1
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secret
+                  key: access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secret
+                  key: secret_access_key
+          command: [bash, -ec]
+          args:
+            - |
+              set -o pipefail
+              WORK=/mnt/work
+              PREFIX=s3://trustify-dumps-small/autoscaling-validation/20261125
+              printf 'import: []\npaths: []\n' > "$WORK/input.yaml"
+              /usr/local/bin/xtask generate-dump --help
+              /usr/local/bin/xtask generate-dump --working-dir "$WORK/run" --input "$WORK/input.yaml" --output "$WORK/dump.sql" |& tee "$WORK/job.log"
+              test -s "$WORK/dump.sql"
+              xz -c "$WORK/dump.sql" > "$WORK/dump.sql.xz"
+              xz -c "$WORK/job.log" > "$WORK/job.log.xz"
+              aws s3 cp "$WORK/dump.sql.xz" "$PREFIX/dump.sql.xz"
+              aws s3 cp "$WORK/job.log.xz" "$PREFIX/success/job.log.xz"
+              aws s3api head-object --bucket trustify-dumps-small --key autoscaling-validation/20261125/dump.sql.xz --query ContentLength
+              echo "Tuned embedded database and S3 success upload validated"
+              # Deliberately fail parsing before database startup, then exercise
+              # the same compressed failure-log upload used by the CronJob.
+              set +e
+              /usr/local/bin/xtask generate-dump --input "$WORK/input.yaml" --pg-setting missing= |& tee "$WORK/failure.log"
+              rc=$?
+              set -e
+              test "$rc" -ne 0
+              xz -c "$WORK/failure.log" > "$WORK/failure.log.xz"
+              aws s3 cp "$WORK/failure.log.xz" "$PREFIX/failed/job.log.xz"
+              aws s3api head-object --bucket trustify-dumps-small --key autoscaling-validation/20261125/failed/job.log.xz --query ContentLength
+              echo "Controlled failure log uploaded; exiting with expected failure"
+              exit "$rc"
+          resources:
+            requests:
+              cpu: "6"
+              memory: 24Gi
+          volumeMounts:
+            - name: work
+              mountPath: /mnt/work
+      volumes:
+        - name: work
+          ephemeral:
+            volumeClaimTemplate:
+              spec:
+                storageClassName: gp3-csi
+                accessModes: [ReadWriteOnce]
+                resources:
+                  requests:
+                    storage: 512Gi
