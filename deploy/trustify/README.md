@@ -91,6 +91,7 @@ old Helm release: the Terraform credentials and shared observability stay in pla
 5. Empty only `s3://trustify-default`, preserving the bucket and IAM configuration.
    Check versioning first; if enabled, remove historical versions and delete
    markers as well. Never empty `storage-tempo-default` or any dumps bucket.
+   For an unversioned bucket, use the [one-time batched cleanup Job](../../operations/trustify/s3/README.md).
 6. Remove unused `data-infrastructure-postgresql-0` and `workdir-importer-0` PVCs
    after confirming no pod uses them. The old importer's ephemeral PVC is removed
    with its pod. Preserve `data-tempo-tempo-ingester-0`.
