@@ -32,7 +32,8 @@ state, or Helm release exports belong in this repository.
 ```sh
 helm unittest ../trustify-helm-charts/charts/trustify
 helm lint ../trustify-helm-charts/charts/trustify -f deploy/trustify/values.yaml
-ruby hack/check-trustify.rb ../trustify-helm-charts/charts/trustify
+helm template trustify ../trustify-helm-charts/charts/trustify -n trustify \
+  -f deploy/trustify/values.yaml | oc apply --dry-run=server -n trustify -f -
 oc apply --dry-run=server -k deploy/trustify/platform
 oc create --dry-run=server -f operations/trustify/database.yaml
 ```
@@ -49,7 +50,10 @@ administrator, then label the existing namespace:
 ```sh
 oc label namespace trustify argocd.argoproj.io/managed-by=trustify-gitops --overwrite
 oc apply -f argocd/trustify-project.yaml -f argocd/trustify-rbac.yaml
-oc apply -f argocd/trustify-platform-application.yaml -f argocd/trustify-application.yaml
+for manifest in argocd/trustify-platform-application.yaml argocd/trustify-application.yaml; do
+  oc patch --local -f "$manifest" --type=json \
+    --patch '[{"op":"remove","path":"/spec/syncPolicy/automated"}]' -o yaml | oc apply -f -
+done
 ```
 
 The bootstrap RBAC includes the built-in `system:auth-delegator` role for the
@@ -57,7 +61,8 @@ application controller. Tempo admission requires TokenReview and
 SubjectAccessReview creation privileges when submitting OpenShift tenancy
 configuration. This binding is maintained manually, outside either Application.
 
-Both Applications start with manual sync and no cascading-deletion finalizer.
+The bootstrap command disables auto-sync for the first adoption. Neither
+Application has a cascading-deletion finalizer.
 Review their Argo CD differences before synchronization. First sync the platform
 Application and check that its operators remain ready. Perform the one-time
 fresh installation below before syncing the application. The migration PreSync
@@ -103,7 +108,7 @@ old Helm release: the Terraform credentials and shared observability stay in pla
    ```sh
    helm template trustify ../trustify-helm-charts/charts/trustify -n trustify \
      -f deploy/trustify/values.yaml -f operations/trustify/importers.yaml \
-     --show-only templates/init/create-importers/020-Job.yaml | oc create -f -
+     --show-only templates/init/create-importers/020-Job.yaml | oc create -n trustify -f -
    ```
 
    Verify success. This overlay is never included in the Argo CD Application.
@@ -112,14 +117,15 @@ old Helm release: the Terraform credentials and shared observability stay in pla
    ingestion/retrieval, and working metrics/traces. Check both public endpoints.
 
    ```sh
-   python3 operations/trustify/smoke-test.py --write
+   python3 operations/trustify/smoke-test.py --write --resync
    python3 operations/trustify/smoke-test.py --server https://server-trustify.apps.cluster.trustification.rocks
    ```
 
    Credentials are read from Terraform's existing Secrets into memory; neither
    credentials nor access tokens are printed or written to disk.
-10. Enable automated sync with `prune: false` and `selfHeal: true` in both
-    Application manifests and reapply them. Verify a second sync preserves data.
+10. Reapply both committed Application manifests to enable automated sync with
+    `prune: false` and `selfHeal: true`. The `--resync` test above verifies that
+    existing data survives a second full sync.
 
 Keep the old Helm release metadata for reference, but stop using Helm upgrades
 and rollbacks for this namespace. Argo CD owns deployment lifecycle now.

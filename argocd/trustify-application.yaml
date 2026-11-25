@@ -20,7 +20,9 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: trustify
-  # Enable automated self-healing after the manual reset and first sync.
   syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
     syncOptions:
       - FailOnSharedResource=true

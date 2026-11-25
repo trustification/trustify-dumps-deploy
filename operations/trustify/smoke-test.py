@@ -4,16 +4,37 @@ import argparse
 import base64
 import json
 import subprocess
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
 
 
-def cluster(kind, name):
+def cluster(kind, name, namespace="trustify"):
     return json.loads(subprocess.check_output(
-        ["oc", "get", kind, name, "-n", "trustify", "-o", "json"]
+        ["oc", "get", kind, name, "-n", namespace, "-o", "json"]
     ))
+
+
+def resync_application():
+    before = cluster("application", "trustify", "trustify-gitops").get("status", {}).get("operationState", {}).get("startedAt")
+    subprocess.check_call([
+        "oc", "patch", "application", "trustify", "-n", "trustify-gitops",
+        "--type=merge", "--patch", json.dumps({"operation": {"sync": {"prune": False}}}),
+    ])
+    deadline = time.monotonic() + 180
+    while time.monotonic() < deadline:
+        app = cluster("application", "trustify", "trustify-gitops")
+        operation = app.get("status", {}).get("operationState", {})
+        if operation.get("startedAt") != before:
+            if operation.get("phase") == "Succeeded":
+                print("A second full Argo CD sync succeeded.")
+                return
+            if operation.get("phase") in {"Failed", "Error"}:
+                raise RuntimeError("Argo CD sync failed: " + operation.get("message", ""))
+        time.sleep(2)
+    raise RuntimeError("Timed out waiting for a new Argo CD sync")
 
 
 def request(url, *, method="GET", data=None, headers=None):
@@ -27,7 +48,10 @@ def main():
     parser.add_argument("--server", default="https://trustification.dev")
     parser.add_argument("--auth-only", action="store_true")
     parser.add_argument("--write", action="store_true", help="Upload, download, and delete one sample SBOM")
+    parser.add_argument("--resync", action="store_true", help="Verify the uploaded sample survives a full Argo CD sync")
     args = parser.parse_args()
+    if args.resync and not args.write:
+        parser.error("--resync requires --write")
     issuer = cluster("configmap", "aws-oidc")["data"]["issuer-url"]
     discovery = json.loads(request(issuer + "/.well-known/openid-configuration"))
     credentials = cluster("secret", "oidc-cli")["data"]
@@ -45,7 +69,10 @@ def main():
     print("Existing Terraform OAuth credentials authenticate successfully.")
     if args.auth_only:
         return
-    headers = {"Authorization": "Bearer " + token}
+    trace_id = uuid.uuid4().hex
+    headers = {"Authorization": "Bearer " + token,
+               "traceparent": "00-" + trace_id + "-" + uuid.uuid4().hex[:16] + "-01"}
+    print("Validation trace ID:", trace_id)
     server = args.server.rstrip("/")
     request(server + "/")
     json.loads(request(server + "/api/v3/importer", headers=headers))
@@ -68,6 +95,8 @@ def main():
     ))
     key = urllib.parse.quote(result["id"], safe="")
     try:
+        if args.resync:
+            resync_application()
         downloaded = json.loads(request(server + "/api/v3/sbom/" + key + "/download", headers=headers))
         if downloaded != sample:
             raise RuntimeError("Downloaded SBOM differs from the uploaded sample")
