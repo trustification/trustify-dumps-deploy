@@ -7,9 +7,9 @@ metadata:
 spec:
   project: trustify
   sources:
-    - repoURL: https://github.com/guacsec/trustify-helm-charts.git
-      targetRevision: 581135ce301102f871a3456a13d41d562cfe5c34
-      path: charts/trustify
+    - repoURL: https://guacsec.github.io/trustify-helm-charts/
+      targetRevision: 0.3.4
+      chart: trustify
       helm:
         releaseName: trustify
         valueFiles:

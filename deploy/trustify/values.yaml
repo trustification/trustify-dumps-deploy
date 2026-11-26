@@ -76,6 +76,12 @@ modules:
   migrateDatabase:
     enabled: true
   server:
+    # Per API instance; measure RDS memory and queue throughput when tuning.
+    extraEnv:
+      - name: TRUSTD_CORRELATION_WORKERS
+        value: "4"
+      - name: TRUSTD_CORRELATION_WORK_MEM
+        value: "256MiB"
     resources:
       requests: {cpu: "1", memory: 6Gi}
   importer:

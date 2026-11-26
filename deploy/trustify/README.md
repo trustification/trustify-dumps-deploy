@@ -8,7 +8,8 @@ and network policies.
 
 ## Sources and ownership
 
-`argocd/trustify/application.yaml` pins the upstream chart Git commit. Its second
+`argocd/trustify/application.yaml` selects upstream Helm chart version `0.3.4`
+from `https://guacsec.github.io/trustify-helm-charts/`. Its second
 source supplies this repository's values (`ref: values`, with no `path`). The
 application image is pinned to the digest recorded in `values.yaml`.
 
@@ -26,7 +27,7 @@ configuration. Do not commit credentials, Terraform state, or Helm release expor
 ## Validate
 
 Run commands from the repository root, with the upstream chart checked out at
-the commit pinned in the Application:
+the release tag matching the chart version in the Application:
 
 ```sh
 helm unittest ../trustify-helm-charts/charts/trustify
@@ -39,6 +40,33 @@ oc apply --dry-run=server -k deploy/trustify/platform
 The chart's schema uses URNs and needs a compatible Helm version. Takeover
 validation used Helm 4.3.2 locally and Helm 4.2.4 in Argo CD. Upstream CI also
 validates the chart with its registered external schemas.
+
+## Correlation tuning
+
+`values.yaml` sets four correlation workers per API instance and `256MiB` of
+transaction-local PostgreSQL `work_mem` through `modules.server.extraEnv`.
+The chart version selected in `argocd/trustify/application.yaml` supports
+`modules.server.extraEnv` and renders both settings into the API deployment.
+After confirming chart `0.3.4` is published and merging these values, apply the
+updated AppProject and Application registrations so Argo CD can use the Helm
+repository and chart version:
+
+```sh
+oc apply -f argocd/trustify/project.yaml -f argocd/trustify/application.yaml
+```
+
+Workers share advisory extraction, refresh, and verdict work. The importer
+concurrency setting controls import jobs and does not increase correlation
+workers. Watch the correlation freshness API, RDS CPU, memory, and temporary
+disk usage when tuning: `work_mem` is per query operation and several operations
+can allocate it per worker. Four workers and `256MiB` are initial settings to
+measure, rather than a guaranteed memory bound or throughput improvement.
+
+The running image can also reject verdict publication when the global revision
+changes during computation. If logs report `the verdict revision changed during
+computation`, tuning alone will not fix it; deploy an application version with
+the publication fix that retains the computed revision and leaves newer work
+pending.
 
 ## Deployment and reconciliation
 

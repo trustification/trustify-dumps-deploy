@@ -7,7 +7,7 @@ spec:
   description: Trustify application and operator-managed observability
   sourceRepos:
     - https://github.com/trustification/trustify-gitops.git
-    - https://github.com/guacsec/trustify-helm-charts.git
+    - https://guacsec.github.io/trustify-helm-charts/
   destinations:
     - server: https://kubernetes.default.svc
       namespace: trustify
