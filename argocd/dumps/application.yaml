@@ -6,7 +6,7 @@ metadata:
 spec:
   project: trustify-dumps
   source:
-    repoURL: https://github.com/trustification/trustify-dumps-deploy.git
+    repoURL: https://github.com/trustification/trustify-gitops.git
     targetRevision: main
     path: deploy/dumps/overlays/all
   destination:

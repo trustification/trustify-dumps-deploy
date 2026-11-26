@@ -6,7 +6,7 @@ metadata:
 spec:
   description: Trustify dump generation
   sourceRepos:
-    - https://github.com/trustification/trustify-dumps-deploy.git
+    - https://github.com/trustification/trustify-gitops.git
   destinations:
     - server: https://kubernetes.default.svc
       namespace: trustify-dumps

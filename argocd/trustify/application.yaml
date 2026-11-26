@@ -14,7 +14,7 @@ spec:
         releaseName: trustify
         valueFiles:
           - $values/deploy/trustify/values.yaml
-    - repoURL: https://github.com/trustification/trustify-dumps-deploy.git
+    - repoURL: https://github.com/trustification/trustify-gitops.git
       targetRevision: main
       ref: values
   destination:
