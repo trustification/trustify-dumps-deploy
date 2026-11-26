@@ -1,10 +1,18 @@
-# Repository migration
+# Repository migration — completed 26 November 2026
 
-The repository is moving from `trustification/trustify-dumps-deploy` to
+The repository moved from `trustification/trustify-dumps-deploy` to
 `trustification/trustify-gitops`. Deployed names, namespaces, Helm chart sources,
 and workload configuration remain unchanged.
 
-Run the handoff with GitHub administrator and cluster administrator access:
+The four existing Applications resolved the new URL and reported Synced/Healthy.
+Their original automated sync policies were restored, the old project allowlist
+entries were removed, and the temporary dump-path wrapper was deleted. Optional
+test Applications were not registered. The local checkout directory was retained.
+
+## Handoff sequence
+
+The following sequence records the migration for future reference. It requires
+GitHub administrator and cluster administrator access:
 
 1. Inventory registered Applications and their AppProjects in `trustify-gitops`
    and `openshift-gitops`. Record their source settings and automated sync policies.
