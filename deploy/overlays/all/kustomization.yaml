@@ -1,11 +1,5 @@
+# Temporary compatibility path for existing Argo CD registrations.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
-# Everything deployed to the trustify-dumps namespace. This is the path ArgoCD syncs.
-namespace: trustify-dumps
-
 resources:
-  - ../../common
-  - ../default
-  - ../ds4
-  - ../small
+  - ../../dumps/overlays/all

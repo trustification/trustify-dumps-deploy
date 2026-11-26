@@ -8,15 +8,15 @@ small stays on existing workers. Existing MachineSets remain unchanged.
 
 The cluster has no parent Application. An administrator must register the
 AppProject, controller RBAC and Application once; they are not worker resources.
-Apply only `argocd/autoscaling-rbac.yaml`, `argocd/autoscaling-project.yaml` and
-`argocd/autoscaling-application.yaml` during bootstrap. ArgoCD then creates all
+Apply only `argocd/autoscaling/rbac.yaml`, `argocd/autoscaling/project.yaml` and
+`argocd/autoscaling/application.yaml` during bootstrap. ArgoCD then creates all
 resources from `infra/autoscaling`. Do not apply that directory with oc.
 
 The infrastructure Application follows `main` after successful pool validation.
 It has automatic sync/self-healing, no automatic pruning and no cascading deletion
 finalizer. The separate test Application follows main's
 `infra/autoscaling/tests` path and permits pruning disposable test Jobs.
-Register `argocd/autoscaling-test-application.yaml` only after infrastructure sync
+Register `argocd/autoscaling/test-application.yaml` only after infrastructure sync
 succeeds. Test Jobs are deliberately excluded from the infrastructure overlay.
 The test Kustomization is currently empty after successful pool and tuned-image
 validation. The test Application and its workload-namespace RBAC can be registered

@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/trustification/trustify-dumps-deploy.git
     targetRevision: main
-    path: deploy/overlays/all
+    path: deploy/dumps/overlays/all
   destination:
     server: https://kubernetes.default.svc
     namespace: trustify-dumps
