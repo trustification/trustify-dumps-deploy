@@ -76,6 +76,7 @@ modules:
   migrateDatabase:
     enabled: true
   server:
+    replicas: 2
     # Per API instance; measure RDS memory and queue throughput when tuning.
     extraEnv:
       - name: TRUSTD_CORRELATION_WORKERS
